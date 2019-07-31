@@ -1,3 +1,5 @@
+Uang elektronik yang dibuat diatas jaringan stellar
+
 ## Asset Acccount
 Public Key
 GDRQZSLQX76KRLDXUJT6QEUMP4TTV5ALRTJY32KII2WQHMF4N77QOOQM
