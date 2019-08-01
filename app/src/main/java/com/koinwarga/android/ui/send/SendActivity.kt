@@ -36,7 +36,10 @@ class SendActivity : BaseActivity() {
         isCreateAccount = intent.getBooleanExtra("isCreateAccount", false)
 
         btnSend.setOnClickListener {
-            val to = Account(txtTo.text.toString(), "")
+            val to = Account(
+                accountId = txtTo.text.toString(),
+                secretKey = ""
+            )
             sendIDR(to, txtAmount.text.toString().toInt())
         }
 

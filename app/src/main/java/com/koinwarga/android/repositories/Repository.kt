@@ -1,6 +1,7 @@
 package com.koinwarga.android.repositories
 
 import android.content.Context
+import android.util.Log
 import com.koinwarga.android.datasources.local_database.LocalDatabase
 import com.koinwarga.android.models.Account
 import kotlinx.coroutines.CoroutineScope
@@ -25,7 +26,10 @@ class Repository(
             val db = LocalDatabase.connect(context)
 
             val newAccountPair = KeyPair.random()
-            val newAccount = Account(newAccountPair.accountId, String(newAccountPair.secretSeed))
+            val newAccount = Account(
+                accountId = newAccountPair.accountId,
+                secretKey = String(newAccountPair.secretSeed)
+            )
 
             db.accountDao().insertAll(
                 com.koinwarga.android.datasources.local_database.Account(
@@ -56,7 +60,29 @@ class Repository(
 
             db.close()
 
-            return@withContext Response.Success(Account(account.accountId, account.secretKey))
+            return@withContext Response.Success(Account(
+                id = account.id ?: -1,
+                accountId = account.accountId,
+                secretKey = account.secretKey
+            ))
+        }
+    }
+
+    suspend fun updateAccount(account: Account): Response<Boolean> {
+        return withContext(scope.coroutineContext + Dispatchers.IO) {
+            val db = LocalDatabase.connect(context)
+
+            db.accountDao().update(account.let { com.koinwarga.android.datasources.local_database.Account(
+                id = it.id,
+                accountId = it.accountId,
+                secretKey = it.secretKey,
+                lastPagingToken = it.lastPagingToken,
+                isDefault = true
+            ) })
+
+            db.close()
+
+            return@withContext Response.Success(true)
         }
     }
 
@@ -82,7 +108,12 @@ class Repository(
                 val xlm = serverAccount.balances.firstOrNull { it.assetType == "native" }.let { it?.balance }
                 val idr = serverAccount.balances.firstOrNull { it.assetCode == "IDR" }.let { it?.balance }
 
-                val account = Account(accountFromDB.accountId, accountFromDB.secretKey, xlm, idr)
+                val account = Account(
+                    accountId = accountFromDB.accountId,
+                    secretKey = accountFromDB.secretKey,
+                    xlm = xlm,
+                    idr = idr
+                )
 
                 return@withContext Response.Success(account)
             } catch (e: Exception) {

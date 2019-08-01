@@ -27,6 +27,19 @@
         </activity>
         <activity android:name=".ui.main.MainActivity">
         </activity>
+
+        <service
+                android:name=".services.ListenPaymentService"
+                android:enabled="true" >
+        </service>
+
+        <receiver
+                android:name=".services.ListenPaymentRestarterBroadcastReceiver"
+                android:enabled="true"
+                android:exported="true"
+                android:label="RestartServiceWhenStopped">
+        </receiver>
+
     </application>
 
 </manifest>
