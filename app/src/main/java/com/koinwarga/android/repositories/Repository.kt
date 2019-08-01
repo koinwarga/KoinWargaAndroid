@@ -63,7 +63,8 @@ class Repository(
             return@withContext Response.Success(Account(
                 id = account.id ?: -1,
                 accountId = account.accountId,
-                secretKey = account.secretKey
+                secretKey = account.secretKey,
+                lastPagingToken = account.lastPagingToken
             ))
         }
     }

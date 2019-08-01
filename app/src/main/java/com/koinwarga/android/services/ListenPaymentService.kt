@@ -1,9 +1,16 @@
 package com.koinwarga.android.services
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import com.koinwarga.android.R
 import com.koinwarga.android.models.Account
 import com.koinwarga.android.repositories.Repository
 import com.koinwarga.android.repositories.Response
@@ -57,7 +64,6 @@ class ListenPaymentService : Service(), CoroutineScope by MainScope() {
 
     private fun updateLastPagingToken(account: Account) {
         launch(Dispatchers.Main) {
-            Log.d("test", """update for ${account.id}""")
             when(val response = repository.updateAccount(account)) {
                 is Response.Error -> Log.d("test", """Error update lastpagingtoken ${response.message}""")
             }
@@ -73,14 +79,13 @@ class ListenPaymentService : Service(), CoroutineScope by MainScope() {
         val paymentsRequest = server.payments().forAccount(account)
 
         val lastToken = accountFromDB.lastPagingToken
-        Log.d("test", """last paging token $lastToken""")
         if (lastToken != null) {
             paymentsRequest.cursor(lastToken)
         }
 
         paymentsRequest.stream(object : EventListener<OperationResponse> {
             override fun onEvent(payment: OperationResponse) {
-                Log.d("test", """update last paging token ${payment.pagingToken}""")
+                Log.d("test", """Update last paging token ${payment.pagingToken}""")
                 accountFromDB.lastPagingToken = payment.pagingToken
                 updateLastPagingToken(accountFromDB)
 
@@ -104,12 +109,34 @@ class ListenPaymentService : Service(), CoroutineScope by MainScope() {
 
             override fun onFailure(p0: Optional<Throwable>?, p1: Optional<Int>?) {
                 Log.d("test", "Listening payment failure")
+                stopSelf()
             }
         })
     }
 
     private fun makeNotification(msg: String) {
-        Log.d("test", msg)
+        val builder = NotificationCompat.Builder(this, "koinwarga")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Payment")
+            .setContentText(msg)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "koinwarga"
+            val descriptionText = "koin dari kita, untuk kita, oleh kita"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel("koinwarga", name, importance).apply {
+                description = descriptionText
+            }
+            // Register the channel with the system
+            val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+            builder.setChannelId("koinwarga")
+        }
+
+        with(NotificationManagerCompat.from(this)) {
+            notify(1, builder.build())
+        }
     }
 
 }
