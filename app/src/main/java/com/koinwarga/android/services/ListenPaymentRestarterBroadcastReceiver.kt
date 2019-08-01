@@ -8,10 +8,7 @@ import android.util.Log
 class ListenPaymentRestarterBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, p1: Intent?) {
-        Log.i(
-            ListenPaymentService::class.java.simpleName,
-            "ListenPaymentService Stops!"
-        )
+        Log.d("test", "Restart Listening Payment")
         context?.startService(Intent(context, ListenPaymentService::class.java))
     }
 

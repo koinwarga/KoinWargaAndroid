@@ -2,24 +2,17 @@ package com.koinwarga.android.services
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.Service
 import android.content.Context
-import android.content.Intent
 import android.os.Build
-import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
+import androidx.work.Worker
+import androidx.work.WorkerParameters
 import com.koinwarga.android.R
-import com.koinwarga.android.models.Account
-import com.koinwarga.android.repositories.Repository
-import com.koinwarga.android.repositories.Response
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
+import com.koinwarga.android.datasources.local_database.LocalDatabase
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.stellar.sdk.AssetTypeCreditAlphaNum
 import org.stellar.sdk.AssetTypeNative
 import org.stellar.sdk.KeyPair
@@ -28,67 +21,26 @@ import org.stellar.sdk.requests.EventListener
 import org.stellar.sdk.responses.operations.OperationResponse
 import org.stellar.sdk.responses.operations.PaymentOperationResponse
 import shadow.com.google.common.base.Optional
-import java.util.concurrent.TimeUnit
 
 
-class ListenPaymentService : Service(), CoroutineScope by MainScope() {
+class ReceiverWorker(private val context: Context, workerParams: WorkerParameters) : Worker(context, workerParams) {
+    override fun doWork(): Result {
+        Log.d("test", "Start Payment Worker")
 
-    private val repository by lazy { Repository(this, this) }
+        val db = LocalDatabase.connect(context)
+        val activeAccount = db.accountDao().getDefault()
 
-    override fun onBind(p0: Intent?): IBinder? {
-        return null
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
-        getCurrentAccount()
-        return START_STICKY
-    }
-
-    override fun onDestroy() {
-        Log.d("test", """Stop Listening Payment""")
-        startWorker()
-        super.onDestroy()
-    }
-
-    private fun startWorker() {
-//        WorkManager.getInstance(this).cancelAllWork()
-//        val receiverWorkRequest = PeriodicWorkRequestBuilder<ReceiverWorker>(
-//            15, TimeUnit.MINUTES)
-//            .build()
-//        WorkManager.getInstance(this).enqueue(receiverWorkRequest)
-
-//        val broadcastIntent = Intent(this, ListenPaymentRestarterBroadcastReceiver::class.java)
-//        sendBroadcast(broadcastIntent)
-    }
-
-    private fun getCurrentAccount() {
-        launch(Dispatchers.Main) {
-            when(val response = repository.getAccount()) {
-                is Response.Success -> startListeningPayment(response.body)
-                is Response.Error -> stopSelf()
-            }
-
+        if (activeAccount == null) {
+            Log.d("test", "failed")
+            return Result.failure()
         }
-    }
-
-    private fun updateLastPagingToken(account: Account) {
-        launch(Dispatchers.Main) {
-            when(val response = repository.updateAccount(account)) {
-                is Response.Error -> Log.d("test", """Error update lastpagingtoken ${response.message}""")
-            }
-        }
-    }
-
-    private fun startListeningPayment(accountFromDB: Account) {
-        Log.d("test", """Start Listening Payment for ${accountFromDB.accountId}""")
 
         val server = Server("https://horizon-testnet.stellar.org")
-        val account = KeyPair.fromAccountId(accountFromDB.accountId)
+        val account = KeyPair.fromAccountId(activeAccount.accountId)
 
         val paymentsRequest = server.payments().forAccount(account)
 
-        val lastToken = accountFromDB.lastPagingToken
+        val lastToken = activeAccount.lastPagingToken
         if (lastToken != null) {
             paymentsRequest.cursor(lastToken)
         }
@@ -96,8 +48,9 @@ class ListenPaymentService : Service(), CoroutineScope by MainScope() {
         paymentsRequest.stream(object : EventListener<OperationResponse> {
             override fun onEvent(payment: OperationResponse) {
                 Log.d("test", """Update last paging token ${payment.pagingToken}""")
-                accountFromDB.lastPagingToken = payment.pagingToken
-                updateLastPagingToken(accountFromDB)
+
+                activeAccount.lastPagingToken = payment.pagingToken
+                db.accountDao().update(activeAccount)
 
                 if (payment is PaymentOperationResponse) {
 
@@ -119,13 +72,23 @@ class ListenPaymentService : Service(), CoroutineScope by MainScope() {
 
             override fun onFailure(p0: Optional<Throwable>?, p1: Optional<Int>?) {
                 Log.d("test", "Listening payment failure")
-                stopSelf()
             }
         })
+
+        return runBlocking {
+            delay(890000)
+            Log.d("test", "Finish listening payment from worker")
+            return@runBlocking Result.success()
+        }
+    }
+
+    override fun onStopped() {
+        Log.d("test", "Stop Payment Worker")
+        super.onStopped()
     }
 
     private fun makeNotification(msg: String) {
-        val builder = NotificationCompat.Builder(this, "koinwarga")
+        val builder = NotificationCompat.Builder(context, "koinwarga")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Payment")
             .setContentText(msg)
@@ -139,14 +102,13 @@ class ListenPaymentService : Service(), CoroutineScope by MainScope() {
                 description = descriptionText
             }
             // Register the channel with the system
-            val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager: NotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
             builder.setChannelId("koinwarga")
         }
 
-        with(NotificationManagerCompat.from(this)) {
+        with(NotificationManagerCompat.from(context)) {
             notify(1, builder.build())
         }
     }
-
 }
