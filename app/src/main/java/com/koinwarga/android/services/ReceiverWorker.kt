@@ -13,11 +13,10 @@ import com.koinwarga.android.R
 import com.koinwarga.android.datasources.local_database.LocalDatabase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.stellar.sdk.AssetTypeCreditAlphaNum
-import org.stellar.sdk.AssetTypeNative
-import org.stellar.sdk.KeyPair
-import org.stellar.sdk.Server
+import org.stellar.sdk.*
 import org.stellar.sdk.requests.EventListener
+import org.stellar.sdk.responses.operations.ChangeTrustOperationResponse
+import org.stellar.sdk.responses.operations.CreateAccountOperationResponse
 import org.stellar.sdk.responses.operations.OperationResponse
 import org.stellar.sdk.responses.operations.PaymentOperationResponse
 import shadow.com.google.common.base.Optional
@@ -27,12 +26,28 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
     override fun doWork(): Result {
         Log.d("test", "Start Payment Worker")
 
-        val db = LocalDatabase.connect(context)
-        val activeAccount = db.accountDao().getDefault()
+        listenPayment()
 
-        if (activeAccount == null) {
+        return runBlocking {
+            delay(890000)
+            Log.d("test", "Finish listening payment from worker")
+            return@runBlocking Result.success()
+        }
+    }
+
+    override fun onStopped() {
+        Log.d("test", "Stop Payment Worker")
+        super.onStopped()
+    }
+
+    private fun listenPayment() {
+        val db = LocalDatabase.connect(context)
+        val activeAccount = db.accountDao().getDefault() ?: return runBlocking {
             Log.d("test", "failed")
-            return Result.failure()
+            delay(10000)
+            Log.d("test", "Restart payment stream")
+            listenPayment()
+            return@runBlocking
         }
 
         val server = Server("https://horizon-testnet.stellar.org")
@@ -52,7 +67,13 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
                 activeAccount.lastPagingToken = payment.pagingToken
                 db.accountDao().update(activeAccount)
 
-                if (payment is PaymentOperationResponse) {
+                if (payment is CreateAccountOperationResponse) {
+
+                    val output = """Akun kamu sudah aktif dengan saldo XLM ${payment.startingBalance}"""
+
+                    makeNotification(output)
+
+                } else if (payment is PaymentOperationResponse) {
 
                     val amount = payment.amount
 
@@ -65,6 +86,8 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
 
                     val output = """$amount $assetName from ${payment.from.accountId}"""
 
+                    Log.d("test", output)
+
                     makeNotification(output)
                 }
 
@@ -72,19 +95,14 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
 
             override fun onFailure(p0: Optional<Throwable>?, p1: Optional<Int>?) {
                 Log.d("test", "Listening payment failure")
+
+                runBlocking {
+                    delay(10000)
+                    Log.d("test", "Restart payment stream")
+                    listenPayment()
+                }
             }
         })
-
-        return runBlocking {
-            delay(890000)
-            Log.d("test", "Finish listening payment from worker")
-            return@runBlocking Result.success()
-        }
-    }
-
-    override fun onStopped() {
-        Log.d("test", "Stop Payment Worker")
-        super.onStopped()
     }
 
     private fun makeNotification(msg: String) {
