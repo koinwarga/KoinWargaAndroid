@@ -12,6 +12,9 @@ interface AccountDao {
     @Query("SELECT * FROM ACCOUNT WHERE is_default IS 1")
     fun getDefault(): Account?
 
+    @Query("SELECT * FROM ACCOUNT")
+    fun getAll(): List<Account>
+
     @Insert
     fun insertAll(vararg accounts: Account)
 

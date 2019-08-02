@@ -5,11 +5,11 @@ import android.os.Bundle
 import android.view.View
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
-import com.koinwarga.android.ui.main.MainActivity
 import com.koinwarga.android.R
 import com.koinwarga.android.commons.BaseActivity
 import com.koinwarga.android.repositories.Repository
 import com.koinwarga.android.repositories.Response
+import com.koinwarga.android.ui.main.MainActivity
 import kotlinx.android.synthetic.main.activity_landing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

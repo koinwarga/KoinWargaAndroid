@@ -1,163 +1,130 @@
 package com.koinwarga.android.ui.main
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.Button
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import com.google.android.material.navigation.NavigationView
 import com.koinwarga.android.R
-import com.koinwarga.android.commons.BaseActivity
-import com.koinwarga.android.models.Account
-import com.koinwarga.android.repositories.Repository
-import com.koinwarga.android.repositories.Response
-import com.koinwarga.android.ui.send.SendActivity
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import net.glxn.qrgen.android.QRCode
+import com.koinwarga.android.ui.dashboard.DashboardFragment
+import com.koinwarga.android.ui.history.HistoryFragment
+import com.koinwarga.android.ui.manage_account.ManageAccountActivity
+import com.koinwarga.android.ui.send.SendFragment
 
-class MainActivity : BaseActivity() {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
-    private val repository by lazy { Repository(this, this) }
-    private lateinit var account: Account
-    val viewState: MutableLiveData<ViewState> by lazy {
-        MutableLiveData<ViewState>()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
-        viewState.observe(this, Observer {
-            when(it) {
-                ViewState.LOADING -> onStateLoading()
-                ViewState.ACCOUNT_LOADED -> onStateAccountLoaded()
-                ViewState.ACCOUNT_DETAIL_LOADED -> onStateAccountDetailLoaded()
-                ViewState.ERROR -> onStateError()
+        val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
+        val navView: NavigationView = findViewById(R.id.nav_view)
+        val toggle = ActionBarDrawerToggle(
+            this, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
+        )
+        drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        navView.setNavigationItemSelectedListener(this)
+
+        val btnChangeAccount = navView.getHeaderView(0).findViewById<Button>(R.id.btnChangeAccount)
+        btnChangeAccount.setOnClickListener {
+            goToManageAccountPage()
+        }
+
+        showDashboardPage()
+    }
+
+    override fun onBackPressed() {
+        val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        return when (item.itemId) {
+            R.id.action_settings -> true
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        // Handle navigation view item clicks here.
+        when (item.itemId) {
+            R.id.navDashboard -> {
+                showDashboardPage()
             }
-        })
-
-        btnActivateIDR.setOnClickListener { trustIDR() }
-        btnSend.setOnClickListener { goToSendPage() }
-        btnRegisteringAccount.setOnClickListener { goToSendPage(true) }
-
-        loadAccount()
-    }
-
-    private fun onStateLoading() {
-        txtXLMBalance.visibility = View.GONE
-        vXLMBalanceLoading.visibility = View.VISIBLE
-        txtIDRBalance.visibility = View.GONE
-        vIDRBalanceLoading.visibility = View.VISIBLE
-        txtAccountId.isClickable = false
-    }
-
-    private fun onStateAccountLoaded() {
-        txtXLMBalance.visibility = View.GONE
-        vXLMBalanceLoading.visibility = View.VISIBLE
-        txtIDRBalance.visibility = View.GONE
-        vIDRBalanceLoading.visibility = View.VISIBLE
-
-        txtAccountId.text = account.accountId
-        txtAccountId.isClickable = true
-        txtAccountId.setOnClickListener {
-            copyAccountToClipboard()
+            R.id.navSend -> {
+                showSendPage()
+            }
+            R.id.navHistory -> {
+                showHistoryPage()
+            }
+            R.id.navRegisteringAccount -> {
+                showRegisteringAccountPage()
+            }
         }
+        val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
+        drawerLayout.closeDrawer(GravityCompat.START)
+        return true
     }
 
-    private fun onStateAccountDetailLoaded() {
-        txtXLMBalance.visibility = View.VISIBLE
-        vXLMBalanceLoading.visibility = View.GONE
-        txtIDRBalance.visibility = View.VISIBLE
-        vIDRBalanceLoading.visibility = View.GONE
-
-        txtAccountId.text = account.accountId
-        txtAccountId.isClickable = true
-        txtAccountId.setOnClickListener {
-            copyAccountToClipboard()
-        }
-        txtXLMBalance.text = account.xlm ?: "-"
-        txtIDRBalance.text = account.idr ?: "-"
-    }
-
-    private fun onStateError() {
-        txtXLMBalance.visibility = View.VISIBLE
-        vXLMBalanceLoading.visibility = View.GONE
-        txtIDRBalance.visibility = View.VISIBLE
-        vIDRBalanceLoading.visibility = View.GONE
-    }
-
-    private fun goToSendPage(isCreateAccount: Boolean = false) {
-        Intent(this, SendActivity::class.java).apply {
-            putExtra("isCreateAccount", isCreateAccount)
+    private fun goToManageAccountPage() {
+        Intent(this, ManageAccountActivity::class.java).apply {
             startActivity(this)
         }
     }
 
-    private fun generateQRCode() {
-        val myBitmap = QRCode.from(account.accountId).withSize(200, 200).bitmap()
-        vQR.setImageBitmap(myBitmap)
+    private fun showDashboardPage() {
+        val dashboardFragment = DashboardFragment.newInstance()
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.vContainer, dashboardFragment, "DashboardFragment")
+            .commit()
     }
 
-    private fun loadAccount() {
-        viewState.value = ViewState.LOADING
-        launch(Dispatchers.Main) {
-            when(val responseAccount = repository.getAccount()) {
-                is Response.Success -> {
-                    account = responseAccount.body
-                    viewState.value = ViewState.ACCOUNT_LOADED
-                    generateQRCode()
-                    loadAccountDetail()
-                }
-                is Response.Error -> {
-                    showToast(responseAccount.message)
-                    viewState.value = ViewState.ERROR
-                }
-            }
-        }
+    private fun showSendPage() {
+        val sendFragment = SendFragment.newInstance(false)
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.vContainer, sendFragment, "SendFragment")
+            .commit()
     }
 
-    private fun loadAccountDetail() {
-        launch(Dispatchers.Main) {
-            when(val response = repository.getAccountDetail()) {
-                is Response.Success -> {
-                    account = response.body
-                    viewState.value = ViewState.ACCOUNT_DETAIL_LOADED
-                }
-                is Response.Error -> {
-                    showToast(response.message)
-                    viewState.value = ViewState.ERROR
-                }
-            }
-        }
+    private fun showHistoryPage() {
+        val historyFragment = HistoryFragment.newInstance()
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.vContainer, historyFragment, "HistoryFragment")
+            .commit()
     }
 
-    private fun trustIDR() {
-        launch(Dispatchers.Main) {
-            when(val response = repository.trustIDR()) {
-                is Response.Success -> {
-                    loadAccountDetail()
-                    showDialogMessage("Rupiah diaktifkan")
-                }
-                is Response.Error -> showDialogMessage("""Rupiah gagal diaktifkan. ${response.message}""")
-            }
-        }
-    }
-
-    private fun copyAccountToClipboard() {
-        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clipData = ClipData.newPlainText("Source Text", account.accountId)
-        clipboardManager.primaryClip = clipData
-        showToast("Copy Account ID")
-    }
-
-    enum class ViewState {
-        LOADING,
-        ACCOUNT_LOADED,
-        ACCOUNT_DETAIL_LOADED,
-        ERROR
+    private fun showRegisteringAccountPage() {
+        val sendFragment = SendFragment.newInstance(true)
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.vContainer, sendFragment, "RegisteringAccountFragment")
+            .commit()
     }
 }

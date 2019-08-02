@@ -13,11 +13,14 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
-        <activity android:name=".ui.scanner.ScannerActivity">
+        <activity android:name=".ui.manage_account.ManageAccountActivity" android:launchMode="singleTop">
         </activity>
         <activity
-                android:name=".ui.send.SendActivity"
-                android:launchMode="singleTop">
+                android:name=".ui.main.MainActivity"
+                android:label="@string/title_activity_main"
+                android:theme="@style/AppTheme.NoActionBar">
+        </activity>
+        <activity android:name=".ui.scanner.ScannerActivity">
         </activity>
         <activity android:name=".ui.landing.LandingActivity">
             <intent-filter>
@@ -25,8 +28,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-        </activity>
-        <activity android:name=".ui.main.MainActivity">
         </activity>
     </application>
 

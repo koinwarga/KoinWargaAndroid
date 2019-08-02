@@ -4,13 +4,14 @@ import android.content.Context
 import android.util.Log
 import com.koinwarga.android.datasources.local_database.LocalDatabase
 import com.koinwarga.android.models.Account
+import com.koinwarga.android.models.History
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.stellar.sdk.*
 import org.stellar.sdk.AssetTypeNative
-
-
+import org.stellar.sdk.requests.RequestBuilder
+import org.stellar.sdk.responses.effects.*
 
 
 class Repository(
@@ -66,6 +67,63 @@ class Repository(
                 secretKey = account.secretKey,
                 lastPagingToken = account.lastPagingToken
             ))
+        }
+    }
+
+    suspend fun setAccountDefault(account: Account): Response<Account> {
+        return withContext(scope.coroutineContext + Dispatchers.IO) {
+            val db = LocalDatabase.connect(context)
+
+            val defaultAccountFromDb = db.accountDao().getDefault()
+
+            if (defaultAccountFromDb == null) {
+                db.close()
+                return@withContext Response.Error<Account>(
+                    code = Response.ErrorCode.ERROR_EMPTY,
+                    message = "Tidak ada akun")
+            }
+
+            val changeDefaultAccountFromDb = defaultAccountFromDb.copy(
+                isDefault = false
+            )
+            val newDefaultAccount = account.let {
+                com.koinwarga.android.datasources.local_database.Account(
+                    id = account.id,
+                    accountId = account.accountId,
+                    secretKey = account.secretKey,
+                    isDefault = true,
+                    lastPagingToken = account.lastPagingToken
+                )
+            }
+            db.accountDao().update(changeDefaultAccountFromDb, newDefaultAccount)
+
+            db.close()
+
+            return@withContext Response.Success(Account(
+                id = account.id ?: -1,
+                accountId = account.accountId,
+                secretKey = account.secretKey,
+                lastPagingToken = account.lastPagingToken
+            ))
+        }
+    }
+
+    suspend fun getAllAccount(): Response<List<Account>> {
+        return withContext(scope.coroutineContext + Dispatchers.IO) {
+            val db = LocalDatabase.connect(context)
+
+            val allAccountFromDb = db.accountDao().getAll()
+
+            db.close()
+
+            return@withContext Response.Success(allAccountFromDb.map {
+                Account(
+                    id = it.id ?: -1,
+                    accountId = it.accountId,
+                    secretKey = it.secretKey,
+                    lastPagingToken = it.lastPagingToken
+                )
+            })
         }
     }
 
@@ -247,6 +305,47 @@ class Repository(
                 return@withContext Response.Error<Boolean>(
                     code = Response.ErrorCode.ERROR_EMPTY,
                     message = e.message.toString())
+            }
+        }
+    }
+
+    suspend fun accountHistories(): Response<List<History>> {
+        return withContext(scope.coroutineContext + Dispatchers.IO) {
+            val db = LocalDatabase.connect(context)
+
+            val accountFromDB = db.accountDao().getDefault()
+
+            if (accountFromDB == null) {
+                db.close()
+                return@withContext Response.Error<List<History>>(
+                    code = Response.ErrorCode.ERROR_EMPTY,
+                    message = "Tidak ada akun")
+            }
+
+            val pair = KeyPair.fromAccountId(accountFromDB.accountId)
+
+            try {
+                val server = Server(stellar_url)
+                val accountPair = KeyPair.fromAccountId(accountFromDB.accountId)
+                val effect = server.effects().forAccount(accountPair).order(RequestBuilder.Order.DESC)
+                val response = effect.execute()
+
+                val histories = response.records.map {
+                    when(it) {
+                        is AccountCreatedEffectResponse -> History(it.id, it.type, it.createdAt, true, it.startingBalance)
+                        is AccountCreditedEffectResponse -> History(it.id, it.type, it.createdAt, true, it.amount)
+                        is AccountDebitedEffectResponse -> History(it.id, it.type, it.createdAt, true, it.amount)
+                        else -> History(it.id, it.type, it.createdAt, true, "")
+                    }
+                }
+
+                return@withContext Response.Success(histories)
+            } catch (e: Exception) {
+                return@withContext Response.Error<List<History>>(
+                    code = Response.ErrorCode.ERROR_CONNECTION,
+                    message = e.message.toString())
+            } finally {
+                db.close()
             }
         }
     }

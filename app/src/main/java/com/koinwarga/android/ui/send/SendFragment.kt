@@ -3,37 +3,43 @@ package com.koinwarga.android.ui.send
 import android.Manifest.permission
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import androidx.fragment.app.Fragment
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionDeniedResponse
 import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
-import com.koinwarga.android.commons.BaseActivity
+import com.koinwarga.android.R
+import com.koinwarga.android.commons.BaseFragment
 import com.koinwarga.android.models.Account
 import com.koinwarga.android.repositories.Repository
 import com.koinwarga.android.repositories.Response
 import com.koinwarga.android.ui.scanner.ScannerActivity
-import kotlinx.android.synthetic.main.activity_send.*
+import kotlinx.android.synthetic.main.fragment_send.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import android.widget.ArrayAdapter
-import com.koinwarga.android.R
 
 
-class SendActivity : BaseActivity() {
+class SendFragment : BaseFragment() {
 
-    private val repository by lazy { Repository(this, this) }
+    private val repository by lazy { Repository(context!!, this) }
     private var isCreateAccount = false
     private var isNative = false
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_send)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        return inflater.inflate(R.layout.fragment_send, container, false)
+    }
 
-        isCreateAccount = intent.getBooleanExtra("isCreateAccount", false)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        isCreateAccount = arguments?.getBoolean("isCreateAccount") ?: false
 
         btnSend.setOnClickListener {
             val to = Account(
@@ -62,7 +68,7 @@ class SendActivity : BaseActivity() {
             vChooseCurrency.visibility = View.GONE
         }
         val currencies = listOf( "XLM", "IDR" )
-        val chooseCurrencyAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currencies)
+        val chooseCurrencyAdapter = ArrayAdapter(context!!, android.R.layout.simple_spinner_item, currencies)
         chooseCurrencyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         vChooseCurrency.adapter = chooseCurrencyAdapter
         vChooseCurrency.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -79,13 +85,13 @@ class SendActivity : BaseActivity() {
     }
 
     private fun goToScannerPage() {
-        Intent(this, ScannerActivity::class.java).apply {
+        Intent(context, ScannerActivity::class.java).apply {
             startActivityForResult(this, 300)
         }
     }
 
     private fun checkPermission() {
-        Dexter.withActivity(this)
+        Dexter.withActivity(activity)
             .withPermission(permission.CAMERA)
             .withListener(object : PermissionListener {
                 override fun onPermissionGranted(response: PermissionGrantedResponse) {
@@ -108,7 +114,6 @@ class SendActivity : BaseActivity() {
                 when(repository.registerAccountToNetwork(to, amount)) {
                     is Response.Success -> {
                         showToast("Akun berhasil didaftarkan")
-                        onBackPressed()
                     }
                     is Response.Error -> showDialogMessage("Gagal mendaftarkan akun")
                 }
@@ -116,9 +121,18 @@ class SendActivity : BaseActivity() {
             when(repository.send(to, amount, isNative)) {
                 is Response.Success -> {
                     showToast("Uang terkirim")
-                    onBackPressed()
                 }
                 is Response.Error -> showDialogMessage("Gagal mengirim uang")
+            }
+        }
+    }
+
+    companion object {
+        fun newInstance(isCreateAccount: Boolean): Fragment {
+            return SendFragment().apply {
+                arguments = Bundle().apply {
+                    putBoolean("isCreateAccount", isCreateAccount)
+                }
             }
         }
     }

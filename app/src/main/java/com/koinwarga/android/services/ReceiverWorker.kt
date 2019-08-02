@@ -13,9 +13,11 @@ import com.koinwarga.android.R
 import com.koinwarga.android.datasources.local_database.LocalDatabase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.stellar.sdk.*
+import org.stellar.sdk.AssetTypeCreditAlphaNum
+import org.stellar.sdk.AssetTypeNative
+import org.stellar.sdk.KeyPair
+import org.stellar.sdk.Server
 import org.stellar.sdk.requests.EventListener
-import org.stellar.sdk.responses.operations.ChangeTrustOperationResponse
 import org.stellar.sdk.responses.operations.CreateAccountOperationResponse
 import org.stellar.sdk.responses.operations.OperationResponse
 import org.stellar.sdk.responses.operations.PaymentOperationResponse
@@ -75,20 +77,23 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
 
                 } else if (payment is PaymentOperationResponse) {
 
-                    val amount = payment.amount
+                    if (payment.to != account) {
+                        val amount = payment.amount
 
-                    val asset = payment.asset
-                    val assetName = if (asset == AssetTypeNative()) {
-                        "lumens"
-                    } else {
-                        """${(asset as AssetTypeCreditAlphaNum).code} : ${asset.issuer.accountId}"""
+                        val asset = payment.asset
+                        val assetName = if (asset == AssetTypeNative()) {
+                            "lumens"
+                        } else {
+                            """${(asset as AssetTypeCreditAlphaNum).code} : ${asset.issuer.accountId}"""
+                        }
+
+                        val output = """Anda mendapat $amount $assetName dari ${payment.from.accountId}"""
+
+                        Log.d("test", output)
+
+                        makeNotification(output)
                     }
 
-                    val output = """$amount $assetName from ${payment.from.accountId}"""
-
-                    Log.d("test", output)
-
-                    makeNotification(output)
                 }
 
             }
