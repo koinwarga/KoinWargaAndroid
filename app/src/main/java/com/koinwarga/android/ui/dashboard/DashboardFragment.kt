@@ -3,6 +3,7 @@ package com.koinwarga.android.ui.dashboard
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -16,6 +17,7 @@ import com.koinwarga.android.commons.BaseFragment
 import com.koinwarga.android.models.Account
 import com.koinwarga.android.repositories.Repository
 import com.koinwarga.android.repositories.Response
+import com.koinwarga.android.ui.pay_scanner.PayScannerActivity
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,6 +58,8 @@ class DashboardFragment : BaseFragment() {
         btnActivateIDR.setOnClickListener {
             trustIDR()
         }
+
+        btnPay.setOnClickListener { onPayClicked() }
 
         loadAccount()
     }
@@ -119,6 +123,12 @@ class DashboardFragment : BaseFragment() {
         txtIDRBalance.visibility = View.VISIBLE
         vIDRBalanceLoading.visibility = View.GONE
         btnActivateIDR.visibility = View.GONE
+    }
+
+    private fun onPayClicked() {
+        Intent(context, PayScannerActivity::class.java).apply {
+            startActivity(this)
+        }
     }
 
     private fun generateQRCode() {
