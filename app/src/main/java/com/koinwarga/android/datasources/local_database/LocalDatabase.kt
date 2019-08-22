@@ -8,6 +8,6 @@ object LocalDatabase {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java, "db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 }

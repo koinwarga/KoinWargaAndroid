@@ -10,6 +10,7 @@ import com.koinwarga.android.commons.BaseActivity
 import com.koinwarga.android.repositories.Repository
 import com.koinwarga.android.repositories.Response
 import com.koinwarga.android.ui.main.MainActivity
+import com.koinwarga.android.ui.password.PasswordDialogFragment
 import kotlinx.android.synthetic.main.activity_landing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -17,7 +18,7 @@ import kotlinx.coroutines.launch
 class LandingActivity : BaseActivity() {
 
     private val repository by lazy { Repository(this, this) }
-    val viewState: MutableLiveData<ViewState> by lazy {
+    private val viewState: MutableLiveData<ViewState> by lazy {
         MutableLiveData<ViewState>()
     }
 
@@ -32,7 +33,7 @@ class LandingActivity : BaseActivity() {
             }
         })
 
-        btnNewAccount.setOnClickListener { createNewAccount() }
+        btnNewAccount.setOnClickListener { showPasswordDialog() }
 
         checkAccountAvailability()
     }
@@ -42,6 +43,13 @@ class LandingActivity : BaseActivity() {
             startActivity(this)
             finish()
         }
+    }
+
+    private fun showPasswordDialog() {
+        val passwordDialogFragment = PasswordDialogFragment.newInstance {
+            createNewAccount(it)
+        }
+        passwordDialogFragment.show(supportFragmentManager, "PasswordDialog")
     }
 
     private fun onStateLoading() {
@@ -68,9 +76,9 @@ class LandingActivity : BaseActivity() {
         }
     }
 
-    private fun createNewAccount() {
+    private fun createNewAccount(password: String) {
         launch(Dispatchers.Main) {
-            repository.createAccount(true)
+            repository.createAccount("Akun Utama", password, true)
             goToMainPage()
         }
     }

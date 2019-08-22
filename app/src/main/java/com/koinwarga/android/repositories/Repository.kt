@@ -1,17 +1,18 @@
 package com.koinwarga.android.repositories
 
 import android.content.Context
-import android.util.Log
 import com.koinwarga.android.datasources.local_database.LocalDatabase
+import com.koinwarga.android.helpers.Crypto
 import com.koinwarga.android.models.Account
 import com.koinwarga.android.models.History
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.stellar.sdk.*
-import org.stellar.sdk.AssetTypeNative
 import org.stellar.sdk.requests.RequestBuilder
-import org.stellar.sdk.responses.effects.*
+import org.stellar.sdk.responses.effects.AccountCreatedEffectResponse
+import org.stellar.sdk.responses.effects.AccountCreditedEffectResponse
+import org.stellar.sdk.responses.effects.AccountDebitedEffectResponse
 
 
 class Repository(
@@ -22,27 +23,39 @@ class Repository(
     private val stellar_url = "https://horizon-testnet.stellar.org"
     private val issuerAccountId = "GDRQZSLQX76KRLDXUJT6QEUMP4TTV5ALRTJY32KII2WQHMF4N77QOOQM"
 
-    suspend fun createAccount(asDefault: Boolean = false): Response<Account> {
+    suspend fun createAccount(
+        accountName: String,
+        password: String,
+        asDefault: Boolean = false
+    ): Response<Account> {
         return withContext(scope.coroutineContext + Dispatchers.IO) {
             val db = LocalDatabase.connect(context)
 
             val newAccountPair = KeyPair.random()
-            val newAccount = Account(
-                accountId = newAccountPair.accountId,
-                secretKey = String(newAccountPair.secretSeed)
-            )
 
-            db.accountDao().insertAll(
+            val encryptedSecretKey = Crypto.encrypt(String(newAccountPair.secretSeed), password)
+
+            val id = db.accountDao().insert(
                 com.koinwarga.android.datasources.local_database.Account(
-                    accountId = newAccount.accountId,
-                    secretKey = newAccount.secretKey,
+                    accountId = newAccountPair.accountId,
+                    secretKey = encryptedSecretKey,
+                    accountName = accountName,
                     isDefault = asDefault
                 )
             )
 
+            val account = db.accountDao().getAccountById(id.toInt()).let {
+                Account(
+                    id = it.id ?: 0,
+                    accountId = it.accountId,
+                    secretKey = it.secretKey,
+                    accountName = it.accountName
+                )
+            }
+
             db.close()
 
-            return@withContext Response.Success(newAccount)
+            return@withContext Response.Success(account)
         }
     }
 
@@ -62,9 +75,10 @@ class Repository(
             db.close()
 
             return@withContext Response.Success(Account(
-                id = account.id ?: -1,
+                id = account.id ?: 0,
                 accountId = account.accountId,
                 secretKey = account.secretKey,
+                accountName = account.accountName,
                 lastPagingToken = account.lastPagingToken
             ))
         }
@@ -91,6 +105,7 @@ class Repository(
                     id = account.id,
                     accountId = account.accountId,
                     secretKey = account.secretKey,
+                    accountName = account.accountName,
                     isDefault = true,
                     lastPagingToken = account.lastPagingToken
                 )
@@ -100,9 +115,10 @@ class Repository(
             db.close()
 
             return@withContext Response.Success(Account(
-                id = account.id ?: -1,
+                id = account.id,
                 accountId = account.accountId,
                 secretKey = account.secretKey,
+                accountName = account.accountName,
                 lastPagingToken = account.lastPagingToken
             ))
         }
@@ -121,13 +137,33 @@ class Repository(
                     id = it.id ?: -1,
                     accountId = it.accountId,
                     secretKey = it.secretKey,
+                    accountName = it.accountName,
                     lastPagingToken = it.lastPagingToken
                 )
             })
         }
     }
 
-    suspend fun updateAccount(account: Account): Response<Boolean> {
+//    suspend fun updateAccount(account: Account): Response<Boolean> {
+//        return withContext(scope.coroutineContext + Dispatchers.IO) {
+//            val db = LocalDatabase.connect(context)
+//
+//            db.accountDao().update(account.let { com.koinwarga.android.datasources.local_database.Account(
+//                id = it.id,
+//                accountId = it.accountId,
+//                secretKey = it.secretKey,
+//                accountName = it.accountName,
+//                lastPagingToken = it.lastPagingToken,
+//                isDefault = true
+//            ) })
+//
+//            db.close()
+//
+//            return@withContext Response.Success(true)
+//        }
+//    }
+
+    suspend fun updateLastPagingToken(account: Account, lastPagingToken: String): Response<Boolean> {
         return withContext(scope.coroutineContext + Dispatchers.IO) {
             val db = LocalDatabase.connect(context)
 
@@ -135,7 +171,8 @@ class Repository(
                 id = it.id,
                 accountId = it.accountId,
                 secretKey = it.secretKey,
-                lastPagingToken = it.lastPagingToken,
+                accountName = it.accountName,
+                lastPagingToken = lastPagingToken,
                 isDefault = true
             ) })
 
@@ -168,8 +205,11 @@ class Repository(
                 val idr = serverAccount.balances.firstOrNull { it.assetCode == "IDR" }.let { it?.balance }
 
                 val account = Account(
+                    id = accountFromDB.id ?: 0,
                     accountId = accountFromDB.accountId,
                     secretKey = accountFromDB.secretKey,
+                    accountName = accountFromDB.accountName,
+                    lastPagingToken = accountFromDB.lastPagingToken,
                     xlm = xlm,
                     idr = idr
                 )
@@ -185,7 +225,7 @@ class Repository(
         }
     }
 
-    suspend fun trustIDR(): Response<Boolean> {
+    suspend fun trustIDR(password: String): Response<Boolean> {
         return withContext(scope.coroutineContext + Dispatchers.IO) {
             val db = LocalDatabase.connect(context)
 
@@ -199,7 +239,7 @@ class Repository(
             }
 
             try {
-                val accountPair = KeyPair.fromSecretSeed(accountFromDB.secretKey)
+                val accountPair = KeyPair.fromSecretSeed(Crypto.decrypt(accountFromDB.secretKey, password))
                 val issuerPair = KeyPair.fromAccountId(issuerAccountId)
                 val asset = Asset.createNonNativeAsset("IDR", issuerPair)
 
@@ -227,7 +267,7 @@ class Repository(
         }
     }
 
-    suspend fun send(to: Account, amount: Int, isNative: Boolean = false): Response<Boolean> {
+    suspend fun send(to: String, amount: Int, password: String, isNative: Boolean = false): Response<Boolean> {
         return withContext(scope.coroutineContext + Dispatchers.IO) {
             val db = LocalDatabase.connect(context)
 
@@ -241,8 +281,8 @@ class Repository(
             }
 
             try {
-                val accountPair = KeyPair.fromSecretSeed(accountFromDB.secretKey)
-                val toPair = KeyPair.fromAccountId(to.accountId)
+                val accountPair = KeyPair.fromSecretSeed(Crypto.decrypt(accountFromDB.secretKey, password))
+                val toPair = KeyPair.fromAccountId(to)
                 val issuerPair = KeyPair.fromAccountId(issuerAccountId)
                 val asset = if (isNative) AssetTypeNative() else Asset.createNonNativeAsset("IDR", issuerPair)
 
@@ -268,7 +308,7 @@ class Repository(
         }
     }
 
-    suspend fun registerAccountToNetwork(to: Account, amount: Int, isNative: Boolean = false): Response<Boolean> {
+    suspend fun registerAccountToNetwork(to: String, amount: Int, isNative: Boolean = false): Response<Boolean> {
         return withContext(scope.coroutineContext + Dispatchers.IO) {
             val db = LocalDatabase.connect(context)
 
@@ -283,7 +323,7 @@ class Repository(
 
             try {
                 val accountPair = KeyPair.fromSecretSeed(accountFromDB.secretKey)
-                val toPair = KeyPair.fromAccountId(to.accountId)
+                val toPair = KeyPair.fromAccountId(to)
                 val issuerPair = KeyPair.fromAccountId(issuerAccountId)
                 val asset = if (isNative) AssetTypeNative() else Asset.createNonNativeAsset("IDR", issuerPair)
 

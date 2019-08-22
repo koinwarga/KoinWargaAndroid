@@ -10,7 +10,6 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.koinwarga.android.R
 import com.koinwarga.android.commons.BaseActivity
-import com.koinwarga.android.helpers.MarginItemDecoration
 import com.koinwarga.android.models.Account
 import com.koinwarga.android.repositories.Repository
 import com.koinwarga.android.repositories.Response
@@ -29,6 +28,8 @@ class ManageAccountActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_manage_account)
 
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
         loadAllAccount()
     }
 
@@ -40,6 +41,7 @@ class ManageAccountActivity : BaseActivity() {
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         when(item?.itemId) {
             R.id.btnAdd -> createNewAccount()
+            android.R.id.home -> onBackPressed()
         }
         return true
     }
@@ -62,12 +64,12 @@ class ManageAccountActivity : BaseActivity() {
     }
 
     private fun createNewAccount() {
-        launch(Dispatchers.Main) {
-            when(val response = repository.createAccount(false)) {
-                is Response.Success -> loadAllAccount()
-                is Response.Error -> Log.d("test", "error")
-            }
-        }
+//        launch(Dispatchers.Main) {
+//            when(val response = repository.createAccount(false)) {
+//                is Response.Success -> loadAllAccount()
+//                is Response.Error -> Log.d("test", "error")
+//            }
+//        }
     }
 
     private fun onAccountSelected(account: Account) {

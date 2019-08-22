@@ -108,15 +108,39 @@
             android:layout_marginTop="32dp"/>
 
     <Button
-            android:text="Bayar"
+            android:id="@+id/btnPay"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:id="@+id/btnPay"
-            app:layout_constraintStart_toStartOf="parent"
             android:layout_marginStart="32dp"
+            android:layout_marginEnd="32dp"
+            android:layout_marginBottom="8dp"
+            android:text="Bayar"
+            app:layout_constraintBottom_toTopOf="@+id/btnRegisterPerson"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+            android:id="@+id/btnSend"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:layout_marginEnd="32dp"
+            android:layout_marginBottom="8dp"
+            android:text="Kirim"
+            app:layout_constraintBottom_toTopOf="@+id/btnPay"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+            android:id="@+id/btnRegisterPerson"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
             android:layout_marginEnd="32dp"
             android:layout_marginBottom="32dp"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+            android:text="Mendaftarkan Orang Lain"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

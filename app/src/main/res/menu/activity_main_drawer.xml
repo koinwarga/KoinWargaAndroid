@@ -10,17 +10,21 @@
                 android:checked="true"
                 android:title="Beranda"/>
         <item
-                android:id="@+id/navSend"
+                android:id="@+id/navPoin"
                 android:icon="@drawable/ic_send"
-                android:title="Kirim"/>
+                android:title="Poin"/>
         <item
-                android:id="@+id/navRegisteringAccount"
-                android:icon="@drawable/ic_registering_account"
-                android:title="Mendaftarkan Akun Baru"/>
+                android:id="@+id/navMessage"
+                android:icon="@drawable/ic_send"
+                android:title="Pesan"/>
         <item
                 android:id="@+id/navHistory"
                 android:icon="@drawable/ic_history"
                 android:title="Riwayat Transaksi"/>
+        <item
+                android:id="@+id/navSetting"
+                android:icon="@drawable/ic_history"
+                android:title="Pengaturan"/>
     </group>
 
 </menu>

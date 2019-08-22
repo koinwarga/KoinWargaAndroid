@@ -17,7 +17,9 @@ import com.koinwarga.android.commons.BaseFragment
 import com.koinwarga.android.models.Account
 import com.koinwarga.android.repositories.Repository
 import com.koinwarga.android.repositories.Response
+import com.koinwarga.android.ui.password.PasswordDialogFragment
 import com.koinwarga.android.ui.pay_scanner.PayScannerActivity
+import com.koinwarga.android.ui.send.SendActivity
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,10 +58,15 @@ class DashboardFragment : BaseFragment() {
         }
 
         btnActivateIDR.setOnClickListener {
-            trustIDR()
+            val passwordDialogFragment = PasswordDialogFragment.newInstance {
+                trustIDR(it)
+            }
+            passwordDialogFragment.show(activity?.supportFragmentManager, "PasswordDialog")
         }
 
+        btnSend.setOnClickListener { onSendClicked() }
         btnPay.setOnClickListener { onPayClicked() }
+        btnRegisterPerson.setOnClickListener { onRegisteringPersonClicked() }
 
         loadAccount()
     }
@@ -131,6 +138,20 @@ class DashboardFragment : BaseFragment() {
         }
     }
 
+    private fun onRegisteringPersonClicked() {
+        Intent(context, SendActivity::class.java).apply {
+            putExtra("isCreateAccount", true)
+            startActivity(this)
+        }
+    }
+
+    private fun onSendClicked() {
+        Intent(context, SendActivity::class.java).apply {
+            putExtra("isCreateAccount", false)
+            startActivity(this)
+        }
+    }
+
     private fun generateQRCode() {
         val myBitmap = QRCode.from(account.accountId).withSize(200, 200).bitmap()
         vQR.setImageBitmap(myBitmap)
@@ -179,10 +200,10 @@ class DashboardFragment : BaseFragment() {
         }
     }
 
-    private fun trustIDR() {
+    private fun trustIDR(password: String) {
         viewState.value = ViewState.LOADING
         launch(Dispatchers.Main) {
-            when(val response = repository.trustIDR()) {
+            when(val response = repository.trustIDR(password)) {
                 is Response.Success -> {
                     loadAccountDetail()
                     showDialogMessage("Rupiah diaktifkan")

@@ -15,7 +15,6 @@ import com.koinwarga.android.R
 import com.koinwarga.android.ui.dashboard.DashboardFragment
 import com.koinwarga.android.ui.history.HistoryFragment
 import com.koinwarga.android.ui.manage_account.ManageAccountActivity
-import com.koinwarga.android.ui.send.SendFragment
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -75,14 +74,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.id.navDashboard -> {
                 showDashboardPage()
             }
-            R.id.navSend -> {
-                showSendPage()
-            }
             R.id.navHistory -> {
                 showHistoryPage()
-            }
-            R.id.navRegisteringAccount -> {
-                showRegisteringAccountPage()
             }
         }
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
@@ -104,27 +97,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .commit()
     }
 
-    private fun showSendPage() {
-        val sendFragment = SendFragment.newInstance(false)
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.vContainer, sendFragment, "SendFragment")
-            .commit()
-    }
-
     private fun showHistoryPage() {
         val historyFragment = HistoryFragment.newInstance()
         supportFragmentManager
             .beginTransaction()
             .replace(R.id.vContainer, historyFragment, "HistoryFragment")
-            .commit()
-    }
-
-    private fun showRegisteringAccountPage() {
-        val sendFragment = SendFragment.newInstance(true)
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.vContainer, sendFragment, "RegisteringAccountFragment")
             .commit()
     }
 }

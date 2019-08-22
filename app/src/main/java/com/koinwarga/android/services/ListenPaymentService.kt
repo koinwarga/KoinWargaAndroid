@@ -10,8 +10,6 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.koinwarga.android.R
 import com.koinwarga.android.models.Account
 import com.koinwarga.android.repositories.Repository
@@ -28,7 +26,6 @@ import org.stellar.sdk.requests.EventListener
 import org.stellar.sdk.responses.operations.OperationResponse
 import org.stellar.sdk.responses.operations.PaymentOperationResponse
 import shadow.com.google.common.base.Optional
-import java.util.concurrent.TimeUnit
 
 
 class ListenPaymentService : Service(), CoroutineScope by MainScope() {
@@ -72,9 +69,9 @@ class ListenPaymentService : Service(), CoroutineScope by MainScope() {
         }
     }
 
-    private fun updateLastPagingToken(account: Account) {
+    private fun updateLastPagingToken(account: Account, lastPagingToken: String) {
         launch(Dispatchers.Main) {
-            when(val response = repository.updateAccount(account)) {
+            when(val response = repository.updateLastPagingToken(account, lastPagingToken)) {
                 is Response.Error -> Log.d("test", """Error update lastpagingtoken ${response.message}""")
             }
         }
@@ -96,8 +93,7 @@ class ListenPaymentService : Service(), CoroutineScope by MainScope() {
         paymentsRequest.stream(object : EventListener<OperationResponse> {
             override fun onEvent(payment: OperationResponse) {
                 Log.d("test", """Update last paging token ${payment.pagingToken}""")
-                accountFromDB.lastPagingToken = payment.pagingToken
-                updateLastPagingToken(accountFromDB)
+                updateLastPagingToken(accountFromDB, payment.pagingToken)
 
                 if (payment is PaymentOperationResponse) {
 

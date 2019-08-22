@@ -1,14 +1,11 @@
 package com.koinwarga.android.ui.send
 
-import android.Manifest.permission
+import android.Manifest
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import androidx.fragment.app.Fragment
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionDeniedResponse
@@ -16,37 +13,29 @@ import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
 import com.koinwarga.android.R
-import com.koinwarga.android.commons.BaseFragment
-import com.koinwarga.android.models.Account
+import com.koinwarga.android.commons.BaseActivity
 import com.koinwarga.android.repositories.Repository
 import com.koinwarga.android.repositories.Response
+import com.koinwarga.android.ui.password.PasswordDialogFragment
 import com.koinwarga.android.ui.scanner.ScannerActivity
-import kotlinx.android.synthetic.main.fragment_send.*
+import kotlinx.android.synthetic.main.activity_send.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+class SendActivity : BaseActivity() {
 
-class SendFragment : BaseFragment() {
-
-    private val repository by lazy { Repository(context!!, this) }
+    private val repository by lazy { Repository(this, this) }
     private var isCreateAccount = false
     private var isNative = false
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_send, container, false)
-    }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_send)
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        isCreateAccount = arguments?.getBoolean("isCreateAccount") ?: false
+        isCreateAccount = intent.getBooleanExtra("isCreateAccount", false)
 
         btnSend.setOnClickListener {
-            val to = Account(
-                accountId = txtTo.text.toString(),
-                secretKey = ""
-            )
-            sendIDR(to, txtAmount.text.toString().toInt())
+            showPasswordDialog()
         }
 
         btnScan.setOnClickListener {
@@ -63,12 +52,19 @@ class SendFragment : BaseFragment() {
         super.onActivityResult(requestCode, resultCode, data)
     }
 
+    private fun showPasswordDialog() {
+        val passwordDialogFragment = PasswordDialogFragment.newInstance {
+            sendIDR(txtTo.text.toString(), txtAmount.text.toString().toInt(), it)
+        }
+        passwordDialogFragment.show(supportFragmentManager, "PasswordDialog")
+    }
+
     private fun initChooseCurrency() {
         if (isCreateAccount) {
             vChooseCurrency.visibility = View.GONE
         }
         val currencies = listOf( "XLM", "IDR" )
-        val chooseCurrencyAdapter = ArrayAdapter(context!!, android.R.layout.simple_spinner_item, currencies)
+        val chooseCurrencyAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currencies)
         chooseCurrencyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         vChooseCurrency.adapter = chooseCurrencyAdapter
         vChooseCurrency.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -85,14 +81,14 @@ class SendFragment : BaseFragment() {
     }
 
     private fun goToScannerPage() {
-        Intent(context, ScannerActivity::class.java).apply {
+        Intent(this, ScannerActivity::class.java).apply {
             startActivityForResult(this, 300)
         }
     }
 
     private fun checkPermission() {
-        Dexter.withActivity(activity)
-            .withPermission(permission.CAMERA)
+        Dexter.withActivity(this)
+            .withPermission(Manifest.permission.CAMERA)
             .withListener(object : PermissionListener {
                 override fun onPermissionGranted(response: PermissionGrantedResponse) {
                     goToScannerPage()
@@ -108,7 +104,7 @@ class SendFragment : BaseFragment() {
             }).check()
     }
 
-    private fun sendIDR(to: Account, amount: Int) {
+    private fun sendIDR(to: String, amount: Int, password: String) {
         launch(Dispatchers.Main) {
             if (isCreateAccount) {
                 when(repository.registerAccountToNetwork(to, amount)) {
@@ -118,21 +114,11 @@ class SendFragment : BaseFragment() {
                     is Response.Error -> showDialogMessage("Gagal mendaftarkan akun")
                 }
             }
-            when(repository.send(to, amount, isNative)) {
+            when(repository.send(to, amount, password, isNative)) {
                 is Response.Success -> {
                     showToast("Uang terkirim")
                 }
                 is Response.Error -> showDialogMessage("Gagal mengirim uang")
-            }
-        }
-    }
-
-    companion object {
-        fun newInstance(isCreateAccount: Boolean): Fragment {
-            return SendFragment().apply {
-                arguments = Bundle().apply {
-                    putBoolean("isCreateAccount", isCreateAccount)
-                }
             }
         }
     }

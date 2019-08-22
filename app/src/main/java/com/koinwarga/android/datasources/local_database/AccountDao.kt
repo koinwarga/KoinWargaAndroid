@@ -15,8 +15,11 @@ interface AccountDao {
     @Query("SELECT * FROM ACCOUNT")
     fun getAll(): List<Account>
 
+    @Query("SELECT * FROM ACCOUNT WHERE id = :id")
+    fun getAccountById(id: Int): Account
+
     @Insert
-    fun insertAll(vararg accounts: Account)
+    fun insert(account: Account): Long
 
     @Update
     fun update(vararg accounts: Account)
