@@ -11,4 +11,4 @@
 /build
 /captures
 .externalNativeBuild
-.development_keystore
+development_keystore
