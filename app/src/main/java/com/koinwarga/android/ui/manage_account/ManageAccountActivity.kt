@@ -11,7 +11,7 @@ import androidx.work.WorkManager
 import com.koinwarga.android.R
 import com.koinwarga.android.commons.BaseActivity
 import com.koinwarga.android.models.Account
-import com.koinwarga.android.repositories.Repository
+import com.koinwarga.android.repositories.RepositoryProvider
 import com.koinwarga.android.repositories.Response
 import com.koinwarga.android.services.ReceiverWorker
 import kotlinx.android.synthetic.main.activity_manage_account.*
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 
 class ManageAccountActivity : BaseActivity() {
 
-    private val repository by lazy { Repository(this, this) }
+    private val repository by lazy { RepositoryProvider.repository(this, this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,20 +47,20 @@ class ManageAccountActivity : BaseActivity() {
     }
 
     private fun loadAllAccount() {
-        launch(Dispatchers.Main) {
-            when(val response = repository.getAllAccount()) {
-                is Response.Success -> {
-                    val listAdapter = ListAdapter(response.body)
-                    listAdapter.setOnAccountSelected = {
-                        onAccountSelected(it)
-                    }
-                    vList.layoutManager = LinearLayoutManager(this@ManageAccountActivity)
-                    vList.adapter = listAdapter
-                    vList.addItemDecoration(DividerItemDecoration(this@ManageAccountActivity, LinearLayoutManager.VERTICAL))
-                }
-                is Response.Error -> Log.d("test", "error")
-            }
-        }
+//        launch(Dispatchers.Main) {
+//            when(val response = repository.getAllAccount()) {
+//                is Response.Success -> {
+//                    val listAdapter = ListAdapter(response.body)
+//                    listAdapter.setOnAccountSelected = {
+//                        onAccountSelected(it)
+//                    }
+//                    vList.layoutManager = LinearLayoutManager(this@ManageAccountActivity)
+//                    vList.adapter = listAdapter
+//                    vList.addItemDecoration(DividerItemDecoration(this@ManageAccountActivity, LinearLayoutManager.VERTICAL))
+//                }
+//                is Response.Error -> Log.d("test", "error")
+//            }
+//        }
     }
 
     private fun createNewAccount() {
@@ -73,18 +73,18 @@ class ManageAccountActivity : BaseActivity() {
     }
 
     private fun onAccountSelected(account: Account) {
-        launch(Dispatchers.Main) {
-            when(val response = repository.setAccountDefault(account)) {
-                is Response.Success -> {
-                    WorkManager.getInstance(this@ManageAccountActivity).cancelAllWork()
-                    val receiverWorkRequest = PeriodicWorkRequestBuilder<ReceiverWorker>(
-                        15, TimeUnit.MINUTES)
-                        .build()
-                    WorkManager.getInstance(this@ManageAccountActivity).enqueue(receiverWorkRequest)
-                    finish()
-                }
-                is Response.Error -> Log.d("test", "error")
-            }
-        }
+//        launch(Dispatchers.Main) {
+//            when(val response = repository.setAccountDefault(account)) {
+//                is Response.Success -> {
+//                    WorkManager.getInstance(this@ManageAccountActivity).cancelAllWork()
+//                    val receiverWorkRequest = PeriodicWorkRequestBuilder<ReceiverWorker>(
+//                        15, TimeUnit.MINUTES)
+//                        .build()
+//                    WorkManager.getInstance(this@ManageAccountActivity).enqueue(receiverWorkRequest)
+//                    finish()
+//                }
+//                is Response.Error -> Log.d("test", "error")
+//            }
+//        }
     }
 }

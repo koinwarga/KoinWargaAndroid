@@ -10,7 +10,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.koinwarga.android.R
+import com.koinwarga.android.datasources.local_database.AppDatabase
 import com.koinwarga.android.datasources.local_database.LocalDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.stellar.sdk.AssetTypeCreditAlphaNum
@@ -25,9 +28,10 @@ import shadow.com.google.common.base.Optional
 
 
 class ReceiverWorker(private val context: Context, workerParams: WorkerParameters) : Worker(context, workerParams) {
-    override fun doWork(): Result {
-        Log.d("test", "Start Payment Worker")
 
+//    private val repository by lazy { Repository(context, this) }
+
+    override fun doWork(): Result {
         listenPayment()
 
         return runBlocking {
@@ -43,6 +47,7 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
     }
 
     private fun listenPayment() {
+        Log.d("test", "Start Payment Worker")
         val db = LocalDatabase.connect(context)
         val activeAccount = db.accountDao().getDefault() ?: return runBlocking {
             Log.d("test", "failed")
@@ -54,6 +59,7 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
 
         val server = Server("https://horizon-testnet.stellar.org")
         val account = KeyPair.fromAccountId(activeAccount.accountId)
+        Log.d("test", """Listen payment ${activeAccount.accountId}""")
 
         val paymentsRequest = server.payments().forAccount(account)
 
@@ -67,6 +73,10 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
                 Log.d("test", """Update last paging token ${payment.pagingToken}""")
 
                 activeAccount.lastPagingToken = payment.pagingToken
+                if (activeAccount.idr == null) {
+                    activeAccount.idr = "0"
+                }
+                activeAccount.idr = (activeAccount.idr?.toFloat()?.plus(1000)).toString()
                 db.accountDao().update(activeAccount)
 
                 if (payment is CreateAccountOperationResponse) {
@@ -77,7 +87,7 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
 
                 } else if (payment is PaymentOperationResponse) {
 
-                    if (payment.to != account) {
+                    if (payment.to.accountId == account.accountId) {
                         val amount = payment.amount
 
                         val asset = payment.asset
@@ -87,7 +97,7 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
                             """${(asset as AssetTypeCreditAlphaNum).code} : ${asset.issuer.accountId}"""
                         }
 
-                        val output = """Anda mendapat $amount $assetName dari ${payment.from.accountId}"""
+                        val output = """Uang masuk Rp$amount"""
 
                         Log.d("test", output)
 

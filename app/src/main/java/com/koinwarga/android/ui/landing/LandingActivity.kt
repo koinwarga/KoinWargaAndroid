@@ -3,39 +3,38 @@ package com.koinwarga.android.ui.landing
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import com.koinwarga.android.R
 import com.koinwarga.android.commons.BaseActivity
-import com.koinwarga.android.repositories.Repository
-import com.koinwarga.android.repositories.Response
+import com.koinwarga.android.repositories.RepositoryProvider
 import com.koinwarga.android.ui.main.MainActivity
 import com.koinwarga.android.ui.password.PasswordDialogFragment
 import kotlinx.android.synthetic.main.activity_landing.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class LandingActivity : BaseActivity() {
 
-    private val repository by lazy { Repository(this, this) }
-    private val viewState: MutableLiveData<ViewState> by lazy {
-        MutableLiveData<ViewState>()
-    }
+    private lateinit var viewModel: LandingVM
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_landing)
 
-        viewState.observe(this, Observer {
+        viewModel = LandingVM(
+            RepositoryProvider.repository(this, this)
+        )
+
+        viewModel.viewState.observe(this, Observer {
             when(it) {
-                ViewState.LOADING -> onStateLoading()
-                ViewState.EMPTY_ACCOUNT -> onStateEmptyAccount()
+                LandingVM.ViewState.LOADING -> onStateLoading()
+                LandingVM.ViewState.EMPTY_ACCOUNT -> onStateEmptyAccount()
+                LandingVM.ViewState.ACCOUNT_AVAILABLE -> onStateAccountAvailable()
+                else -> onStateLoading()
             }
         })
 
-        btnNewAccount.setOnClickListener { showPasswordDialog() }
-
-        checkAccountAvailability()
+        btnNewAccount.setOnClickListener {
+            showPasswordDialog()
+        }
     }
 
     private fun goToMainPage() {
@@ -47,7 +46,7 @@ class LandingActivity : BaseActivity() {
 
     private fun showPasswordDialog() {
         val passwordDialogFragment = PasswordDialogFragment.newInstance {
-            createNewAccount(it)
+            viewModel.createNewAccount(it)
         }
         passwordDialogFragment.show(supportFragmentManager, "PasswordDialog")
     }
@@ -62,29 +61,8 @@ class LandingActivity : BaseActivity() {
         vActionContainer.visibility = View.VISIBLE
     }
 
-    private fun checkAccountAvailability() {
-        viewState.value = ViewState.LOADING
-        launch(Dispatchers.Main) {
-            when(val response = repository.getAccount()) {
-                is Response.Success -> goToMainPage()
-                is Response.Error -> {
-                    when(response.code) {
-                        Response.ErrorCode.ERROR_EMPTY -> viewState.value = ViewState.EMPTY_ACCOUNT
-                    }
-                }
-            }
-        }
+    private fun onStateAccountAvailable() {
+        goToMainPage()
     }
 
-    private fun createNewAccount(password: String) {
-        launch(Dispatchers.Main) {
-            repository.createAccount("Akun Utama", password, true)
-            goToMainPage()
-        }
-    }
-
-    enum class ViewState {
-        LOADING,
-        EMPTY_ACCOUNT
-    }
 }

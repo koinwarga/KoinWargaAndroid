@@ -7,105 +7,108 @@
         android:layout_height="match_parent"
         tools:context=".ui.dashboard.DashboardFragment">
 
-    <TextView
-            android:text="TextView"
+    <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:id="@+id/txtAccountId"
-            android:layout_marginEnd="32dp"
-            android:layout_marginRight="32dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginLeft="32dp"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="32dp"
-            app:layout_constraintTop_toTopOf="parent"
-            android:textSize="24sp"
-            android:gravity="center_horizontal"/>
-
-    <LinearLayout
+            android:layout_marginEnd="16dp"
             android:orientation="vertical"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@+id/txtAccountId"
+            app:layout_constraintBottom_toBottomOf="@+id/vQR"
             app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginEnd="32dp"
-            android:id="@+id/linearLayout2">
+            app:layout_constraintStart_toEndOf="@+id/vQR"
+            app:layout_constraintTop_toTopOf="@+id/vQR">
 
         <TextView
-                android:text="IDR"
+                android:id="@+id/txtAccountName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/textView2"
-                android:textStyle="bold"
-                android:gravity="center_horizontal"/>
+                android:fontFamily="sans-serif-medium"
+                android:text="TextView"
+                android:textSize="18sp" />
 
         <TextView
-                android:text="-"
+                android:id="@+id/txtAccountId"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/txtIDRBalance"
-                android:gravity="center_horizontal"/>
-
-        <ProgressBar
-                style="?android:attr/progressBarStyleSmall"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/vIDRBalanceLoading"/>
-
-        <Button
-                android:text="Aktifkan"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/btnActivateIDR"
-                android:background="@null"/>
+                android:text="TextView"
+                android:textSize="12sp" />
     </LinearLayout>
 
     <LinearLayout
-            android:orientation="vertical"
+            android:id="@+id/linearLayout2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginLeft="32dp"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@+id/txtAccountId"
-            android:id="@+id/linearLayout">
+            android:layout_marginEnd="32dp"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/vQR">
 
         <TextView
-                android:text="XLM"
+                android:id="@+id/textView2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/textView4"
-                android:textStyle="bold"
-                android:gravity="center_horizontal"/>
+                android:gravity="center_horizontal"
+                android:text="IDR"
+                android:textStyle="bold" />
 
         <TextView
-                android:text="-"
+                android:id="@+id/txtIDRBalance"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/txtXLMBalance"
-                android:gravity="center_horizontal"/>
+                android:gravity="center_horizontal"
+                android:text="-" />
 
         <ProgressBar
+                android:id="@+id/vIDRBalanceLoading"
                 style="?android:attr/progressBarStyleSmall"
                 android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        <Button
+                android:id="@+id/btnActivateIDR"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/vXLMBalanceLoading"/>
+                android:background="@null"
+                android:text="Aktifkan" />
+    </LinearLayout>
+
+    <LinearLayout
+            android:id="@+id/linearLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:orientation="vertical"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/vQR">
+
+        <TextView
+                android:id="@+id/textView4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:text="XLM"
+                android:textStyle="bold" />
+
+        <TextView
+                android:id="@+id/txtXLMBalance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:text="-" />
+
+        <ProgressBar
+                android:id="@+id/vXLMBalanceLoading"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
     </LinearLayout>
 
     <ImageView
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            tools:src="@tools:sample/avatars"
             android:id="@+id/vQR"
+            android:layout_width="122dp"
+            android:layout_height="116dp"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="8dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginEnd="8dp"
-            app:layout_constraintTop_toBottomOf="@+id/linearLayout2"
-            android:layout_marginTop="32dp"/>
+            app:layout_constraintTop_toTopOf="parent"
+            tools:src="@tools:sample/avatars" />
 
     <Button
             android:id="@+id/btnPay"

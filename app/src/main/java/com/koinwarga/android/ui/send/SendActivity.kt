@@ -14,7 +14,7 @@ import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
 import com.koinwarga.android.R
 import com.koinwarga.android.commons.BaseActivity
-import com.koinwarga.android.repositories.Repository
+import com.koinwarga.android.repositories.RepositoryProvider
 import com.koinwarga.android.repositories.Response
 import com.koinwarga.android.ui.password.PasswordDialogFragment
 import com.koinwarga.android.ui.scanner.ScannerActivity
@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 
 class SendActivity : BaseActivity() {
 
-    private val repository by lazy { Repository(this, this) }
+    private val repository by lazy { RepositoryProvider.repository(this, this) }
     private var isCreateAccount = false
     private var isNative = false
 
@@ -105,21 +105,21 @@ class SendActivity : BaseActivity() {
     }
 
     private fun sendIDR(to: String, amount: Int, password: String) {
-        launch(Dispatchers.Main) {
-            if (isCreateAccount) {
-                when(repository.registerAccountToNetwork(to, amount)) {
-                    is Response.Success -> {
-                        showToast("Akun berhasil didaftarkan")
-                    }
-                    is Response.Error -> showDialogMessage("Gagal mendaftarkan akun")
-                }
-            }
-            when(repository.send(to, amount, password, isNative)) {
-                is Response.Success -> {
-                    showToast("Uang terkirim")
-                }
-                is Response.Error -> showDialogMessage("Gagal mengirim uang")
-            }
-        }
+//        launch(Dispatchers.Main) {
+//            if (isCreateAccount) {
+//                when(repository.registerAccountToNetwork(to, amount, password)) {
+//                    is Response.Success -> {
+//                        showToast("Akun berhasil didaftarkan")
+//                    }
+//                    is Response.Error -> showDialogMessage("Gagal mendaftarkan akun")
+//                }
+//            }
+//            when(repository.send(to, amount, password, isNative)) {
+//                is Response.Success -> {
+//                    showToast("Uang terkirim")
+//                }
+//                is Response.Error -> showDialogMessage("Gagal mengirim uang")
+//            }
+//        }
     }
 }

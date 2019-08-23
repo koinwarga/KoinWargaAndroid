@@ -11,10 +11,10 @@ class App : MultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
         WorkManager.getInstance(this).cancelAllWork()
-        val receiverWorkRequest = PeriodicWorkRequestBuilder<ReceiverWorker>(
-            15, TimeUnit.MINUTES)
-            .build()
-        WorkManager.getInstance(this).enqueue(receiverWorkRequest)
+//        val receiverWorkRequest = PeriodicWorkRequestBuilder<ReceiverWorker>(
+//            15, TimeUnit.MINUTES)
+//            .build()
+//        WorkManager.getInstance(this).enqueue(receiverWorkRequest)
     }
 
 }
