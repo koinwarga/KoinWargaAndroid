@@ -10,12 +10,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.koinwarga.android.R
-import com.koinwarga.android.datasources.local_database.AppDatabase
-import com.koinwarga.android.datasources.local_database.LocalDatabase
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import com.koinwarga.android.models.Account
+import com.koinwarga.android.repositories.RepositoryProvider
+import com.koinwarga.android.repositories.Response
+import kotlinx.coroutines.*
 import org.stellar.sdk.AssetTypeCreditAlphaNum
 import org.stellar.sdk.AssetTypeNative
 import org.stellar.sdk.KeyPair
@@ -27,39 +25,43 @@ import org.stellar.sdk.responses.operations.PaymentOperationResponse
 import shadow.com.google.common.base.Optional
 
 
-class ReceiverWorker(private val context: Context, workerParams: WorkerParameters) : Worker(context, workerParams) {
+class ReceiverWorker(private val context: Context, workerParams: WorkerParameters) : Worker(context, workerParams), CoroutineScope by MainScope() {
 
-//    private val repository by lazy { Repository(context, this) }
+    private val repository by lazy { RepositoryProvider.repository(context, this) }
 
     override fun doWork(): Result {
-        listenPayment()
+        loadActiveAccount()
 
         return runBlocking {
             delay(890000)
-            Log.d("test", "Finish listening payment from worker")
+            Log.d("test", "Stop Listening Payment. Waiting to Restart")
             return@runBlocking Result.success()
         }
     }
 
     override fun onStopped() {
-        Log.d("test", "Stop Payment Worker")
+        Log.d("test", "Stop Payment Stream")
         super.onStopped()
     }
 
-    private fun listenPayment() {
-        Log.d("test", "Start Payment Worker")
-        val db = LocalDatabase.connect(context)
-        val activeAccount = db.accountDao().getDefault() ?: return runBlocking {
-            Log.d("test", "failed")
-            delay(10000)
-            Log.d("test", "Restart payment stream")
-            listenPayment()
-            return@runBlocking
+    private fun loadActiveAccount() {
+        launch(Dispatchers.IO) {
+            Log.d("test", "Load Active Account")
+            when (val response: Response<Account> = repository.getActiveAccount()) {
+                is Response.Success -> listenPayment(response.body)
+                is Response.Error -> restartWorker()
+            }
         }
+    }
+
+    private fun listenPayment(activeAccount: Account) {
+        Log.d("test", "Start Payment Stream")
 
         val server = Server("https://horizon-testnet.stellar.org")
         val account = KeyPair.fromAccountId(activeAccount.accountId)
-        Log.d("test", """Listen payment ${activeAccount.accountId}""")
+
+        Log.d("test", """Start Listening account ${account.accountId}""")
+        Log.d("test", """Last paging token ${activeAccount.lastPagingToken}""")
 
         val paymentsRequest = server.payments().forAccount(account)
 
@@ -72,12 +74,9 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
             override fun onEvent(payment: OperationResponse) {
                 Log.d("test", """Update last paging token ${payment.pagingToken}""")
 
-                activeAccount.lastPagingToken = payment.pagingToken
-                if (activeAccount.idr == null) {
-                    activeAccount.idr = "0"
+                launch(Dispatchers.IO) {
+                    repository.updateActiveAccount(payment.pagingToken)
                 }
-                activeAccount.idr = (activeAccount.idr?.toFloat()?.plus(1000)).toString()
-                db.accountDao().update(activeAccount)
 
                 if (payment is CreateAccountOperationResponse) {
 
@@ -105,19 +104,21 @@ class ReceiverWorker(private val context: Context, workerParams: WorkerParameter
                     }
 
                 }
-
             }
 
             override fun onFailure(p0: Optional<Throwable>?, p1: Optional<Int>?) {
-                Log.d("test", "Listening payment failure")
-
-                runBlocking {
-                    delay(10000)
-                    Log.d("test", "Restart payment stream")
-                    listenPayment()
-                }
+                restartWorker()
             }
         })
+    }
+
+    private fun restartWorker() {
+        runBlocking {
+            Log.d("test", "Restart Payment Stream. Restarting in 10 Sec")
+            delay(10000)
+            loadActiveAccount()
+            return@runBlocking
+        }
     }
 
     private fun makeNotification(msg: String) {

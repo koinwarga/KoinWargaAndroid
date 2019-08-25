@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.koinwarga.android.commons.BaseViewModel
 import com.koinwarga.android.repositories.IRepository
+import com.koinwarga.android.repositories.Response
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -22,11 +23,14 @@ class LandingVM(
     private fun checkAccountAvailability() {
         mutableViewState.value = ViewState.LOADING
         launch {
-            val isAccountAvailable = repository.isAccountAvailable()
-            if (isAccountAvailable) {
-                mutableViewState.value = ViewState.ACCOUNT_AVAILABLE
-            } else {
-                mutableViewState.value = ViewState.EMPTY_ACCOUNT
+            when(val response = repository.isAccountAvailable()) {
+                is Response.Success -> {
+                    mutableViewState.value = if(response.body)
+                        ViewState.ACCOUNT_AVAILABLE
+                    else
+                        ViewState.EMPTY_ACCOUNT
+                }
+                is Response.Error -> mutableViewState.value = ViewState.EMPTY_ACCOUNT
             }
         }
     }

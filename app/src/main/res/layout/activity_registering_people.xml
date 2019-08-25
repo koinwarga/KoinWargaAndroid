@@ -5,7 +5,7 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".ui.send.SendActivity">
+        tools:context=".ui.registering_people.RegisteringPeopleActivity">
 
     <EditText
             android:layout_width="0dp"
@@ -23,31 +23,15 @@
             app:layout_constraintEnd_toStartOf="@+id/btnScan"
             android:layout_marginRight="8dp"/>
 
-    <EditText
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:ems="10"
-            android:id="@+id/txtAmount"
-            android:layout_marginTop="8dp"
-            app:layout_constraintTop_toBottomOf="@+id/txtTo"
-            app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginLeft="16dp"
-            android:layout_marginStart="16dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginEnd="16dp"
-            android:layout_marginRight="16dp"
-            android:hint="Jumlah"/>
-
     <Button
-            android:text="Kirim"
+            android:id="@+id/btnRegister"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/btnSend"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginEnd="16dp"
             android:layout_marginTop="32dp"
-            app:layout_constraintTop_toBottomOf="@+id/txtAmount"/>
+            android:layout_marginEnd="16dp"
+            android:text="Daftarkan"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnScan" />
     <Button
             android:text="Scan"
             android:layout_width="wrap_content"
@@ -55,16 +39,5 @@
             android:id="@+id/btnScan" app:layout_constraintTop_toTopOf="parent"
             android:layout_marginTop="8dp" app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="16dp"
             android:layout_marginRight="16dp"/>
-
-    <Spinner
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:id="@+id/vChooseCurrency"
-            app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="8dp"
-            app:layout_constraintEnd_toStartOf="@+id/btnSend"
-            android:layout_marginEnd="8dp"
-            app:layout_constraintBottom_toBottomOf="@+id/btnSend"
-            app:layout_constraintTop_toTopOf="@+id/btnSend"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

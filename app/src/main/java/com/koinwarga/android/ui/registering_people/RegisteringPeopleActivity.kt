@@ -1,11 +1,8 @@
-package com.koinwarga.android.ui.send
+package com.koinwarga.android.ui.registering_people
 
 import android.Manifest
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import androidx.lifecycle.Observer
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
@@ -18,36 +15,36 @@ import com.koinwarga.android.commons.BaseActivity
 import com.koinwarga.android.repositories.RepositoryProvider
 import com.koinwarga.android.ui.password.PasswordDialogFragment
 import com.koinwarga.android.ui.scanner.ScannerActivity
-import kotlinx.android.synthetic.main.activity_send.*
+import kotlinx.android.synthetic.main.activity_registering_people.*
 
+class RegisteringPeopleActivity : BaseActivity() {
 
-class SendActivity : BaseActivity() {
-
-    private val viewModel = SendVM(RepositoryProvider.repository(this, this))
-    private var isNative = false
+    private lateinit var viewModel: RegisteringPeopleVM
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_send)
+        setContentView(R.layout.activity_registering_people)
 
-        btnSend.setOnClickListener {
-            showPasswordDialog()
-        }
+        viewModel = RegisteringPeopleVM(
+            RepositoryProvider.repository(this, this)
+        )
+
+        viewModel.viewState.observe(this, Observer {
+            when(it) {
+                RegisteringPeopleVM.ViewState.SENDING -> onStateSending()
+                RegisteringPeopleVM.ViewState.SUCCESS -> onStateSuccess()
+                RegisteringPeopleVM.ViewState.FAILED -> onStateFailed()
+                else -> return@Observer
+            }
+        })
 
         btnScan.setOnClickListener {
             checkPermission()
         }
 
-        initChooseCurrency()
-
-        viewModel.viewState.observe(this, Observer {
-            when(it) {
-                SendVM.ViewState.SENDING -> onStateSending()
-                SendVM.ViewState.SUCCESS -> onStateSuccess()
-                SendVM.ViewState.FAILED -> onStateFailed()
-                else -> return@Observer
-            }
-        })
+        btnRegister.setOnClickListener {
+            showPinDialog()
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -59,49 +56,29 @@ class SendActivity : BaseActivity() {
 
     private fun onStateSending() {
         txtTo.isEnabled = false
-        txtAmount.isEnabled = false
-        vChooseCurrency.isEnabled = false
         btnScan.isEnabled = false
-        btnSend.isEnabled = false
+        btnRegister.isEnabled = false
     }
 
     private fun onStateSuccess() {
         txtTo.isEnabled = true
-        txtAmount.isEnabled = true
-        vChooseCurrency.isEnabled = true
         btnScan.isEnabled = true
-        btnSend.isEnabled = true
+        btnRegister.isEnabled = true
         showDialogMessage("Transaksi berhasil")
     }
 
     private fun onStateFailed() {
         txtTo.isEnabled = true
-        txtAmount.isEnabled = true
-        vChooseCurrency.isEnabled = true
         btnScan.isEnabled = true
-        btnSend.isEnabled = true
+        btnRegister.isEnabled = true
         showDialogMessage("Transaksi gagal")
     }
 
-    private fun showPasswordDialog() {
+    private fun showPinDialog() {
         val passwordDialogFragment = PasswordDialogFragment.newInstance {
-            viewModel.sendIDR(txtTo.text.toString(), txtAmount.text.toString().toInt(), isNative, it)
+            viewModel.registeringPeople(txtTo.text.toString(), it)
         }
         passwordDialogFragment.show(supportFragmentManager, "PasswordDialog")
-    }
-
-    private fun initChooseCurrency() {
-        val currencies = listOf( "XLM", "IDR" )
-        val chooseCurrencyAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currencies)
-        chooseCurrencyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        vChooseCurrency.adapter = chooseCurrencyAdapter
-        vChooseCurrency.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) { }
-
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                isNative = currencies[position] == "XLM"
-            }
-        }
     }
 
     private fun setAccountIdToForm(accountId: String) {

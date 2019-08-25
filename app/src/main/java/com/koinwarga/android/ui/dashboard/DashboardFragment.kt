@@ -17,6 +17,7 @@ import com.koinwarga.android.models.Account
 import com.koinwarga.android.repositories.RepositoryProvider
 import com.koinwarga.android.ui.password.PasswordDialogFragment
 import com.koinwarga.android.ui.pay_scanner.PayScannerActivity
+import com.koinwarga.android.ui.registering_people.RegisteringPeopleActivity
 import com.koinwarga.android.ui.send.SendActivity
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import net.glxn.qrgen.android.QRCode
@@ -40,12 +41,12 @@ class DashboardFragment : BaseFragment() {
 
         btnActivateIDR.setOnClickListener {
             val passwordDialogFragment = PasswordDialogFragment.newInstance {
-                trustIDR(it)
+                viewModel.trustIDR(it)
             }
             passwordDialogFragment.show(activity?.supportFragmentManager, "PasswordDialog")
         }
 
-        btnSend.setOnClickListener { onSendClicked() }
+        btnRegister.setOnClickListener { onSendClicked() }
         btnPay.setOnClickListener { onPayClicked() }
         btnRegisterPerson.setOnClickListener { onRegisteringPersonClicked() }
 
@@ -56,6 +57,8 @@ class DashboardFragment : BaseFragment() {
         viewModel.viewState.observe(this, Observer {
             when(it) {
                 DashboardVM.ViewState.LOADING -> onStateLoading()
+                DashboardVM.ViewState.ACCOUNT_LOADED_NO_BALANCE -> onStateAccountDetailLoadedNoBalance()
+                DashboardVM.ViewState.ACCOUNT_LOADED_XLM_ONLY -> onStateAccountDetailLoadedXLMOnly()
                 DashboardVM.ViewState.ACCOUNT_LOADED_FULLY -> onStateAccountDetailLoadedFully()
                 else -> Log.d("test", "empty state")
             }
@@ -65,27 +68,9 @@ class DashboardFragment : BaseFragment() {
             onStateReceiveAccount(it)
         })
 
-//        viewState.observe(this, Observer {
-//            when(it) {
-//                ViewState.LOADING -> onStateLoading()
-//                ViewState.ACCOUNT_LOADED -> onStateAccountLoaded()
-//                ViewState.ACCOUNT_DETAIL_LOADED_NO_BALANCE -> onStateAccountDetailLoadedNoBalance()
-//                ViewState.ACCOUNT_DETAIL_LOADED_XLM_ONLY -> onStateAccountDetailLoadedXLMOnly()
-//                ViewState.ACCOUNT_DETAIL_LOADED_FULLY -> onStateAccountDetailLoadedFully()
-//                ViewState.ERROR -> onStateError()
-//                else -> Log.d("test", "empty state")
-//            }
-//        })
-//
-//        accountLiveData.observe(this, Observer {
-//            if (it != null) {
-//                txtIDRBalance.text = if (it.idr.isNullOrEmpty()) "" else it.idr
-//            }
-//        })
-
-
-
-//        loadAccount()
+        viewModel.msgPopup.observe(this, Observer {
+            showDialogMessage(it)
+        })
     }
 
     private fun onStateLoading() {
@@ -94,14 +79,6 @@ class DashboardFragment : BaseFragment() {
         txtIDRBalance.visibility = View.GONE
         vIDRBalanceLoading.visibility = View.VISIBLE
         btnActivateIDR.visibility = View.INVISIBLE
-    }
-
-    private fun onStateAccountLoaded() {
-        txtXLMBalance.visibility = View.GONE
-        vXLMBalanceLoading.visibility = View.VISIBLE
-        txtIDRBalance.visibility = View.GONE
-        vIDRBalanceLoading.visibility = View.VISIBLE
-        btnActivateIDR.visibility = View.GONE
     }
 
     private fun onStateAccountDetailLoadedNoBalance() {
@@ -151,8 +128,7 @@ class DashboardFragment : BaseFragment() {
     }
 
     private fun onRegisteringPersonClicked() {
-        Intent(context, SendActivity::class.java).apply {
-            putExtra("isCreateAccount", true)
+        Intent(context, RegisteringPeopleActivity::class.java).apply {
             startActivity(this)
         }
     }
@@ -171,56 +147,10 @@ class DashboardFragment : BaseFragment() {
         vQR.setImageBitmap(myBitmap)
     }
 
-    private fun loadAccount() {
-//        viewState.value = ViewState.LOADING
-//        launch(Dispatchers.Main) {
-//            when(val responseAccount = repository.getAccount()) {
-//                is Response.Success -> {
-//                    accountLiveData.postValue(responseAccount.body.value)
-////                    viewState.value = ViewState.ACCOUNT_LOADED
-////                    generateQRCode()
-////                    loadAccountDetail()
-//                }
-//                is Response.Error -> {
-//                    showToast(responseAccount.message)
-//                    viewState.value = ViewState.ERROR
-//                }
-//            }
-//        }
-    }
-
-    private fun loadAccountDetail() {
-//        launch(Dispatchers.Main) {
-//            when(val response = repository.getAccountDetail()) {
-//                is Response.Success -> {
-//                    account = response.body
-//                    checkAccountAvailability(account)
-//                }
-//                is Response.Error -> {
-//                    showToast(response.message)
-//                    viewState.value = ViewState.ERROR
-//                }
-//            }
-//        }
-    }
-
-    private fun trustIDR(password: String) {
-//        viewState.value = ViewState.LOADING
-//        launch(Dispatchers.Main) {
-//            when(val response = repository.trustIDR(password)) {
-//                is Response.Success -> {
-//                    loadAccountDetail()
-//                    showDialogMessage("Rupiah diaktifkan")
-//                }
-//                is Response.Error -> showDialogMessage("""Rupiah gagal diaktifkan. ${response.message}""")
-//            }
-//        }
-    }
-
     private fun copyAccountToClipboard(accountId: String) {
         val clipboardManager = context?.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = ClipData.newPlainText("Source Text", accountId)
-        clipboardManager.primaryClip = clipData
+        clipboardManager.setPrimaryClip(clipData)
         showToast("Copy Account ID")
     }
 

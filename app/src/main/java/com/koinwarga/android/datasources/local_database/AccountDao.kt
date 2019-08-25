@@ -14,7 +14,10 @@ interface AccountDao {
 //    fun getDefault(): Account?
 
     @Query("SELECT * FROM ACCOUNT WHERE is_default IS 1")
-    fun getActiveAccount(): LiveData<Account>
+    fun getActiveAccountLiveData(): LiveData<Account>
+
+    @Query("SELECT * FROM ACCOUNT WHERE is_default IS 1")
+    fun getActiveAccount(): Account?
 
     @Query("SELECT * FROM ACCOUNT")
     fun getAll(): List<Account>

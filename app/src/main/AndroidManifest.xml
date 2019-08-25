@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         package="com.koinwarga.android">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -13,17 +14,18 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
-        <activity android:name=".ui.send.SendActivity"></activity>
-        <activity android:name=".ui.pay_preview.PayPreviewActivity"></activity>
-        <activity android:name=".ui.pay_scanner.PayScannerActivity"></activity>
+        <activity android:name=".ui.registering_people.RegisteringPeopleActivity"></activity>
+        <activity android:name=".ui.send.SendActivity" />
+        <activity android:name=".ui.pay_preview.PayPreviewActivity" />
+        <activity android:name=".ui.pay_scanner.PayScannerActivity" />
         <activity
                 android:name=".ui.manage_account.ManageAccountActivity"
-                android:launchMode="singleTop"></activity>
+                android:launchMode="singleTop" />
         <activity
                 android:name=".ui.main.MainActivity"
                 android:label="@string/title_activity_main"
-                android:theme="@style/AppTheme.NoActionBar"></activity>
-        <activity android:name=".ui.scanner.ScannerActivity"></activity>
+                android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".ui.scanner.ScannerActivity" />
         <activity android:name=".ui.landing.LandingActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
