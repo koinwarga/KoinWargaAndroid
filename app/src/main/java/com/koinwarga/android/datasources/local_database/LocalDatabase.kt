@@ -14,7 +14,7 @@ object LocalDatabase {
             appDatabase = Room.databaseBuilder(
                 context,
                 AppDatabase::class.java, "db"
-            ).fallbackToDestructiveMigration().build()
+            ).build()
         } else {
             Log.d("test", "using singleton db")
         }
